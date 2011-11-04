@@ -1,1 +1,3 @@
-Simple web interface for sphinx search (www.sphinxsearch.com) query log analysis.
+Sphinx search (www.sphinxsearch.com) query log analyzer and simple web interface for result inspection.
+
+!https://github.com/lociii/sphinxLogAnalyzer/blob/master/.README/screen.png(sphinxLogAnalyzer screenshot)!
