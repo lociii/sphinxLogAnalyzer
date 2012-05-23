@@ -10,18 +10,27 @@ class sphinxLogRenderer {
 
 			// show statistics
 			echo '<table class="result resultOverview"><thead><tr>';
-			echo '<th style="width: 25%;">Matchmode</th>';
-			echo '<th style="width: 25%;">Query count</th>';
-			echo '<th style="width: 25%;">Overall time (s)</th>';
-			echo '<th style="width: 25%;">Average time (s)</th>';
+			echo '<th style="width: 20%;">Matchmode</th>';
+			echo '<th style="width: 20%;">Query count</th>';
+			echo '<th style="width: 20%;">Overall time (s)</th>';
+			echo '<th style="width: 20%;">Average time (s)</th>';
+			echo '<th style="width: 20%;">Average <span title="Queries per second">QPS</span></th>';
 			echo '</tr></thead>';
 			foreach ($data as $statsIndex => $dataset) {
+				$qps = 'Not available';
+				if (isset($dataset['minDate']) && isset($dataset['maxDate'])) {
+					$seconds = $dataset['maxDate'] - $dataset['minDate'];
+					$qps = $dataset['count'] / $seconds;
+					$qps = number_format($qps, 2);
+				}
+
 				$average = ($dataset['duration'] / $dataset['count']);
 				echo '<tr>';
 				echo '<td>'.$statsIndex.'</td>';
 				echo '<td>'.$dataset['count'].'</td>';
 				echo '<td>'.number_format($dataset['duration'], 3).'</td>';
 				echo '<td'.($average >= 0.1 ? ' style="background-color: red;"' : '').'>'.number_format($average, 3).'</td>';
+				echo '<td>'.$qps.'</td>';
 				echo '</tr>';
 			}
 			echo '</table>';

@@ -1,6 +1,8 @@
 <?php
 
 class sphinxLogAnalyzer {
+	const SLOW_QUERY_TRESHOLD = 0.5;
+
 	public function analyze($file) {
 		$result = array(
 			'stats'	=> array(),
@@ -24,33 +26,34 @@ class sphinxLogAnalyzer {
 		while ($line = fgets($handle)) {
 			$matches = array();
 			/*
-			 * 1: duration (seconds)
-			 * 2: duration (milliseconds)
-			 * 3: matchmode
-			 * 4: filters count
-			 * 5: sort mode
-			 * 6: total matches
-			 * 7: offset
-			 * 8: limit
-			 * 9 4: index
-			 * 10 5: query
+			 * 1: date
+			 * 2: duration (seconds)
+			 * 3: duration (milliseconds)
+			 * 4: matchmode
+			 * 5: filters count
+			 * 6: sort mode
+			 * 7: total matches
+			 * 8: offset
+			 * 9: limit
+			 * 10: index
+			 * 11: query
 			 */
 
-			if (preg_match('/\[.+\] (\d+).(\d+) sec \[(.+)\/(.+)\/(.+) (\d+) \((\d+),(\d+)\).*\] \[(.+)\] (.*)/i', $line, $matches)) {
+			if (preg_match('/\[(.+)\] (\d+).(\d+) sec \[(.+)\/(.+)\/(.+) (\d+) \((\d+),(\d+)\).*\] \[(.+)\] (.*)/i', $line, $matches)) {
 				// prepare result container
-				if (!isset($result['stats'][$matches[9]])) {
-					$result['stats'][$matches[9]] = array();
+				if (!isset($result['stats'][$matches[10]])) {
+					$result['stats'][$matches[10]] = array();
 				}
-				if (!isset($result['stats'][$matches[9]][$matches[3]])) {
-					$result['stats'][$matches[9]][$matches[3]] = array();
+				if (!isset($result['stats'][$matches[10]][$matches[4]])) {
+					$result['stats'][$matches[10]][$matches[4]] = array();
 				}
-				if (!isset($result['slow'][$matches[9]])) {
-					$result['slow'][$matches[9]] = array();
+				if (!isset($result['slow'][$matches[10]])) {
+					$result['slow'][$matches[10]] = array();
 				}
 
 				// reference
-				$stats = &$result['stats'][$matches[9]][$matches[3]];
-				$slow = &$result['slow'][$matches[9]];
+				$stats = &$result['stats'][$matches[10]][$matches[4]];
+				$slow = &$result['slow'][$matches[10]];
 
 				// count hits
 				if (!isset($stats['count'])) {
@@ -58,23 +61,33 @@ class sphinxLogAnalyzer {
 				}
 				++$stats['count'];
 
+				// save dates
+				$date = preg_replace('~\.\d+\s~', '', $matches[1]);
+				$date = strtotime($date);
+				if (!isset($stats['minDate']) || $stats['minDate'] > $date) {
+					$stats['minDate'] = $date;
+				}
+				if (!isset($stats['maxDate']) || $stats['maxDate'] < $date) {
+					$stats['maxDate'] = $date;
+				}
+
 				// count duration
-				$duration = (float)$matches[1].'.'.$matches[2];
+				$duration = (float)$matches[2].'.'.$matches[3];
 				if (!isset($stats['duration'])) {
 					$stats['duration'] = 0;
 				}
 				$stats['duration'] += $duration;
 
 				// add slow query
-				if ($duration > 0.5) {
+				if ($duration > self::SLOW_QUERY_TRESHOLD) {
 					$slow['query'][] = $matches[10];
 					$slow['duration'][] = $duration;
-					$slow['matchmode'][] = $matches[3];
-					$slow['sortmode'][] = $matches[5];
-					$slow['filters'][] = $matches[4];
-					$slow['matches'][] = $matches[6];
-					$slow['offset'][] = $matches[7];
-					$slow['limit'][] = $matches[8];
+					$slow['matchmode'][] = $matches[4];
+					$slow['sortmode'][] = $matches[6];
+					$slow['filters'][] = $matches[5];
+					$slow['matches'][] = $matches[7];
+					$slow['offset'][] = $matches[8];
+					$slow['limit'][] = $matches[9];
 				}
 			}
 			else {
